@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Пульт ПК</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a0c0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root{--bg:#0a0c0f;--card:#14181d;--line:#232a32;--fg:#e9eef5;--dim:#7b8794;--acc:#8ef07a;--acc2:#5fd0ff;--warn:#ffd166;--bad:#ff6b6b}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--fg);font-weight:700;
+    font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden}
+  .wrap{height:100%;display:flex;flex-direction:column;gap:8px;
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+  .head{display:flex;align-items:flex-end;justify-content:space-between;padding:0 4px}
+  .clock{font-size:clamp(34px,11vw,64px);font-weight:400;letter-spacing:-2px;line-height:.95;font-variant-numeric:tabular-nums}
+  .date{font-size:12px;color:#9aa7b4;text-align:right;line-height:1.4;font-weight:800}
+  .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr auto;gap:8px;flex:1;min-height:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;
+    display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0;overflow:hidden}
+  .lab{font-size:11px;font-weight:900;-webkit-text-stroke:.55px currentColor;letter-spacing:.14em;text-transform:uppercase;color:#9aa7b4;position:absolute;top:9px;left:12px}
+  .big{margin-top:0;font-size:clamp(38px,8vh,68px);font-weight:900;-webkit-text-stroke:.9px currentColor;line-height:1;font-variant-numeric:tabular-nums}
+  .unit{font-size:14px;font-weight:900;color:#b9c5d2;margin-left:3px}
+  .sub{font-size:12px;font-weight:900;color:#b9c5d2;margin-top:2px}
+  .bar{height:6px;background:#222831;border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar>i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .35s ease}
+  .cores{display:flex;gap:2px;align-items:flex-end;height:clamp(26px,5vh,60px);margin-top:10px}
+  .cores>i{flex:1;background:var(--acc2);border-radius:1px;min-height:2px;transition:height .3s ease;opacity:.85}
+  /* три кнопки плеера на всю ширину */
+  .pad{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;min-height:0}
+  .pad button{min-height:clamp(52px,11vh,78px);background:rgba(20,26,32,.9);border:2px solid var(--acc);border-radius:14px;color:var(--acc);
+    display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;height:100%;
+    transition:transform .1s ease,background .1s ease}
+  .pad button:active,.pad button.hit{background:rgba(60,74,88,.95);transform:scale(.98)}
+  .pad button svg{width:clamp(26px,5.5vh,40px);height:clamp(26px,5.5vh,40px);fill:var(--acc);display:block}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.on{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+  .np-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* название трека крупно в шапке */
+  .song{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden;
+    padding:0 16px;opacity:0;transition:opacity .25s}
+  .song.on{opacity:1}
+  .song span{font-size:clamp(20px,5.6vh,36px);font-weight:800;letter-spacing:-.4px;white-space:nowrap;
+    display:inline-block;color:var(--fg);will-change:transform}
+  .song span.marq{animation:songslide var(--dur,12s) ease-in-out infinite alternate}
+  @keyframes songslide{from{transform:translateX(0)}to{transform:translateX(var(--shift))}}
+  .np-art{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .np-time{font-size:10px;color:var(--dim);margin-top:4px;display:flex;justify-content:space-between}
+  .np-bar{height:3px;background:#222831;margin-top:4px;border-radius:99px;overflow:hidden}
+  .np-bar>i{display:block;height:100%;background:var(--warn);border-radius:99px}
+  .foot{display:none}
+  .dead{color:var(--bad)}
+
+  /* питомец Моти */
+  .clockwrap{display:flex;align-items:center;gap:12px;min-width:0}
+  .pet{width:clamp(44px,7vh,62px);height:clamp(48px,7.6vh,68px);position:relative;flex:none;cursor:pointer}
+  .pet svg{width:100%;height:100%;overflow:visible;display:block;transform-origin:50% 90%}
+  .pet .body{fill:#16202a;stroke:#8ef07a;stroke-width:2.2}
+  .pet .antenna{stroke:#8ef07a;stroke-width:2;stroke-linecap:round;fill:none}
+  .pet .bulb{fill:#8ef07a}
+  .pet .paw{fill:#8ef07a;opacity:.75}
+  .pet .mouth{stroke:#8ef07a;stroke-width:1.6;fill:none;stroke-linecap:round}
+  .pet .eye{fill:#c9f8b9;transform-origin:center;transition:transform .12s}
+  .pet .zzz{position:absolute;top:-6px;right:-2px;font-size:11px;color:var(--dim);opacity:0;transition:opacity .3s}
+  .pet .bubble{position:absolute;top:-10px;right:-6px;font-size:12px;font-weight:700;color:#0a0c0f;background:var(--warn);
+    border-radius:99px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.6);transition:.2s}
+  .pet.st-idle svg{animation:bob 3.4s ease-in-out infinite}
+  .pet.st-work svg{animation:bob .72s ease-in-out infinite}
+  .pet.st-dance svg{animation:wig 1.05s ease-in-out infinite}
+  .pet.st-sleep svg{animation:bob 5.5s ease-in-out infinite}
+  .pet.st-alert svg{animation:jump .62s ease-in-out infinite}
+  .pet.st-hot svg{animation:wig .5s ease-in-out infinite}
+  .pet.st-sleep .eye{transform:scaleY(.1)}
+  .pet.st-sleep .zzz{opacity:.9}
+  .pet.st-alert .bubble{opacity:1;transform:scale(1)}
+  .pet.st-hot .body{stroke:#ff6b6b}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+  @keyframes wig{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  @keyframes jump{0%,100%{transform:translateY(0) scaleY(1)}30%{transform:translateY(-7px) scaleY(1.06)}60%{transform:translateY(0) scaleY(.94)}}
+  @media (max-height:400px){
+    .pet{width:clamp(30px,7vh,42px);height:clamp(34px,8vh,48px)}
+    .pad button{min-height:46px;border-radius:12px}
+    .card{padding:5px 9px 7px}
+    .sub{font-size:8.5px;line-height:1.2}
+    .bar{margin-top:2px;height:3px}
+  }
+
+  /* телефон повернули в альбом */
+  @media (min-aspect-ratio: 1/1){
+    .wrap{gap:6px;padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
+    .grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr auto;gap:6px}
+    .clock{font-size:clamp(28px,7.5vh,52px)}
+    .big{font-size:clamp(26px,8vh,50px)}
+    .cores{height:clamp(14px,6vh,34px)}
+    .card{padding:8px 10px}
+    .np-title{font-size:13px}
+  }
+  /* низкий экран (альбом + адресная строка браузера) */
+  @media (max-height:400px){
+    .wrap{gap:5px;padding-top:6px;padding-bottom:6px}
+    .lab{position:static;margin-bottom:2px;font-size:10px;-webkit-text-stroke:.5px currentColor;letter-spacing:.1em}
+    .card{padding:6px 9px;gap:1px}
+    .big{font-size:clamp(20px,6.2vh,32px);-webkit-text-stroke:.7px currentColor}
+    .sub{font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bar{height:3px;margin-top:3px;flex:none}
+    .cores{height:clamp(8px,3vh,17px);margin-top:4px;flex:none}
+    .clock{font-size:clamp(20px,6vh,34px)}
+    .date{font-size:10px}
+    .np-title{font-size:12px}
+    .np-art,.np-time{font-size:9.5px}
+    .foot{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="clockwrap">
+    <div class="clock" id="clock">--:--</div>
+  <div class="pet st-idle" id="pet" title="Моти">
+    <svg viewBox="0 0 64 64">
+      <line class="antenna" x1="32" y1="24" x2="32" y2="10"/>
+      <circle class="bulb" cx="32" cy="8" r="3.4"/>
+      <ellipse class="body" cx="32" cy="40" rx="21" ry="18"/>
+      <ellipse class="eye" id="eyeL" cx="25" cy="37" rx="3.6" ry="4.6"/>
+      <ellipse class="eye" id="eyeR" cx="39" cy="37" rx="3.6" ry="4.6"/>
+      <path class="mouth" d="M28 47 q4 3 8 0"/>
+      <circle class="paw" cx="20" cy="56" r="3"/>
+      <circle class="paw" cx="44" cy="56" r="3"/>
+    </svg>
+    <div class="zzz">z z</div>
+    <div class="bubble">!</div>
+  </div>
+    </div>
+    <div class="song" id="song"><span id="song-title"></span></div>
+    <div class="date"><div id="date"></div><div id="up"></div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="lab">CPU</div>
+      <div><div class="big"><span id="cpu">--</span><span class="unit">%</span></div>
+        <div class="sub" id="cpu-sub">-- ГГц</div></div>
+      <div class="cores" id="cores"></div>
+    </div>
+    <div class="card">
+      <div class="lab">GPU</div>
+      <div><div class="big"><span id="gpu">--</span><span class="unit">%</span></div>
+        <div class="sub" id="gpu-sub">--</div></div>
+      <div class="bar"><i id="gpu-bar" style="width:0"></i></div>
+    </div>
+    <div class="card">
+      <div class="lab">RAM</div>
+      <div><div class="big"><span id="ram">--</span><span class="unit">%</span></div>
+        <div class="sub" id="ram-sub">--</div></div>
+      <div class="bar"><i id="ram-bar" style="width:0"></i></div>
+    </div>
+
+    <div class="card">
+      <div class="lab">Сеть</div>
+      <div><div class="big"><span id="net">0</span><span class="unit">КБ/с</span></div>
+        <div class="sub" id="net-sub">↓ 0 · ↑ 0</div></div>
+      <div class="bar"><i id="net-bar" style="width:0;background:var(--acc2)"></i></div>
+    </div>
+
+    <div class="pad">
+      <button data-act="prev" aria-label="Назад">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+      </button>
+      <button data-act="toggle" id="btn-toggle" aria-label="Пауза">
+        <svg viewBox="0 0 24 24" id="icon-toggle"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+      </button>
+      <button data-act="next" aria-label="Вперёд">
+        <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="foot" id="foot">—</div>
+</div>
+
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = s => { s=Math.max(0,Math.round(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+const fmtUp = s => { const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60);
+  return d>0 ? d+'д '+h+'ч' : h>0 ? h+'ч '+m+'м' : m+'м'; };
+const APP_NAMES = [['yandex.music','Яндекс Музыка'],['spotify','Spotify'],['aimp','AIMP'],
+  ['music.ui','Музыка Windows'],['chrome','Chrome'],['yandex.browser','Яндекс Браузер'],['vlc','VLC']];
+const prettyApp = a => {
+  const s = (a||'').toLowerCase();
+  for (const [k,v] of APP_NAMES) if (s.includes(k)) return v;
+  const tail = (a||'').split('!')[0].split('.').pop() || '';
+  return tail.replace(/_v[a-z0-9]+$/,'').replace(/_/g,' ');
+};
+const WORDS=['вс','пн','вт','ср','чт','пт','сб'], MONS=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+
+function tickClock(){
+  const d=new Date();
+  $('clock').textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  $('date').textContent = WORDS[d.getDay()]+', '+d.getDate()+' '+MONS[d.getMonth()];
+}
+setInterval(tickClock,1000); tickClock();
+
+let last=null, lastStats=null, errCount=0, coresBuilt=false;
+
+function colorFor(p){ return p>85?'var(--bad)':p>65?'var(--warn)':'var(--acc)'; }
+
+function render(d){
+  last=d; lastStats=d;
+  petTick(d);
+  $('cpu').textContent = Math.round(d.cpu);
+  $('cpu-sub').textContent = (d.freq?d.freq+' МГц':'')+' · '+d.cores.length+' потоков';
+  const cores=$('cores');
+  if(!coresBuilt){ cores.innerHTML=d.cores.map(()=>'<i></i>').join(''); coresBuilt=true; }
+  const bars=cores.children;
+  d.cores.forEach((v,i)=>{ if(bars[i]){ bars[i].style.height=Math.max(6,v)+'%'; bars[i].style.background=colorFor(v);} });
+
+  if(d.gpu){
+    $('gpu').textContent = d.gpu.util;
+    $('gpu-sub').textContent = d.gpu.mem_used+' / '+d.gpu.mem_total+' МБ · '+d.gpu.temp+'°C';
+    const b=$('gpu-bar'); b.style.width=d.gpu.util+'%'; b.style.background=colorFor(d.gpu.util);
+  } else {
+    $('gpu').textContent='—'; $('gpu-sub').textContent='нет данных';
+  }
+
+  $('ram').textContent = d.ram.pct;
+  $('ram-sub').textContent = d.ram.used+' / '+d.ram.total+' ГБ';
+  $('ram-bar').style.width=d.ram.pct+'%';
+  $('ram-bar').style.background=colorFor(d.ram.pct);
+
+
+  $('up').textContent = 'аптайм '+fmtUp(d.uptime);
+
+  const n=d.net||{down:0,up:0};
+  const tot=n.down+n.up;
+  $('net').textContent = tot>=1024 ? (tot/1024).toFixed(1) : Math.round(tot);
+  $('net').parentElement.querySelector('.unit').textContent = tot>=1024?'МБ/с':'КБ/с';
+  $('net-sub').textContent = '↓ '+n.down+' · ↑ '+n.up+' КБ/с';
+  $('net-bar').style.width = Math.min(100, tot/102.4*100)+'%';
+
+  const np=d.np||{};
+  const fresh = np._ts && (Date.now()/1000 - np._ts) < 8;
+  const playing = !!(np.playing && fresh);
+  setSong(playing ? (np.title||'') : '');
+  const ic = document.getElementById('icon-toggle');
+  if (ic) ic.innerHTML = (np.playing && fresh)
+    ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>'
+    : '<path d="M7 5l12 7-12 7z"/>';
+  $('foot').className='foot';
+  $('foot').textContent = 'hermes · '+location.host;
+}
+
+async function loop(){
+  try{
+    const r = await fetch('/api/stats',{cache:'no-store'});
+    render(await r.json());
+    errCount=0;
+  }catch(e){
+    errCount++;
+    if(errCount>3){ $('foot').className='foot dead'; $('foot').textContent='нет связи с ПК'; }
+  }
+  setTimeout(loop, 1000);
+}
+loop();
+
+// не гасим экран, пока страница открыта
+let wl=null;
+async function keepAwake(){ try{ wl = await navigator.wakeLock.request('screen'); }catch(e){} }
+keepAwake();
+
+
+// ---- название трека в шапке ----
+const songBox = document.getElementById('song'), songEl = document.getElementById('song-title');
+let songText = null;
+function setSong(text){
+  text = text || '';
+  if (text === songText) return;
+  songText = text;
+  songBox.classList.toggle('on', !!text);
+  songEl.textContent = text;
+  songEl.classList.remove('marq');
+  songEl.style.removeProperty('--shift');
+  songEl.style.removeProperty('--dur');
+  if (!text) return;
+  requestAnimationFrame(()=>{
+    const over = songEl.scrollWidth - songBox.clientWidth + 24;
+    if (over > 4){
+      songEl.style.setProperty('--shift', (-over)+'px');
+      songEl.style.setProperty('--dur', Math.max(6, over/45)+'s');
+      songEl.classList.add('marq');
+    }
+  });
+}
+window.addEventListener('resize', ()=>{ songText = null; });
+
+// ---- питомец Моти ----
+const petEl = document.getElementById('pet');
+let petState = '', notifySeen = false, audioCtx = null, lastChirp = 0;
+
+function unlockAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){}
+}
+function chirp(){
+  if(!audioCtx || Date.now() - lastChirp < 3000) return;
+  lastChirp = Date.now();
+  const t0 = audioCtx.currentTime;
+  [[660,0],[920,0.11]].forEach(([f,d])=>{
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f, t0+d);
+    g.gain.setValueAtTime(0.0001, t0+d);
+    g.gain.exponentialRampToValueAtTime(0.16, t0+d+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+d+0.18);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0+d); o.stop(t0+d+0.22);
+  });
+}
+function setPet(st){
+  if(st === petState) return;
+  petState = st;
+  petEl.className = 'pet st-' + st;
+}
+function petTick(d){
+  const g = d.gpu || {}, a = d.agent || {}, np = d.np || {};
+  const playing = np.playing && np._ts && (Date.now()/1000 - np._ts) < 8;
+  if(a.notify && !notifySeen){ notifySeen = true; setPet('alert'); chirp(); return; }
+  if(!a.notify) notifySeen = false;
+  if(a.notify) return;
+  let st = 'sleep';
+  if(g.util > 92 || d.cpu > 88) st = 'hot';
+  else if(a.busy) st = 'work';
+  else if(playing) st = 'dance';
+  else if(a.idle_sec < 240) st = 'idle';
+  setPet(st);
+}
+// моргает
+setInterval(()=>{
+  if(petEl.className.indexOf('sleep') > -1) return;
+  const eyes = petEl.querySelectorAll('.eye');
+  eyes.forEach(e => e.style.transform = 'scaleY(.1)');
+  setTimeout(()=>eyes.forEach(e => e.style.transform = ''), 130);
+}, 4200);
+// тап по питомцу — прыжок и писк
+petEl.addEventListener('click', e => {
+  e.stopPropagation();
+  unlockAudio();
+  setPet('alert');
+  chirp();
+  petState = 'alert';
+  setTimeout(()=>{ petState=''; petTick(lastStats || {}); }, 1400);
+});
+
+document.addEventListener('pointerdown', unlockAudio, {once:true});
+
+// кнопки плеера
+async function refreshNow(){
+  try{ const r = await fetch('/api/stats',{cache:'no-store'}); render(await r.json()); }catch(e){}
+}
+document.querySelectorAll('.pad button').forEach(b => {
+  b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    b.classList.add('hit');
+    setTimeout(()=>b.classList.remove('hit'), 220);
+    try{
+      await fetch('/api/media', {method:'POST', headers:{'Content-Type':'application/json'},
+                                body: JSON.stringify({action: b.dataset.act})});
+    }catch(err){}
+    setTimeout(refreshNow, 350);
+    setTimeout(refreshNow, 1200);
+  });
+});
+
+// тап по экрану → полноэкранный режим (Chrome Android)
+document.addEventListener('click', async () => {
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    }
+  } catch (e) {}
+});
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') keepAwake(); });
+</script>
+</body>
+</html>

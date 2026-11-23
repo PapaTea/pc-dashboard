@@ -1,0 +1,4 @@
+psutil>=5.9
+winrt-Windows.Media.Control
+winrt-Windows.Foundation
+winrt-Windows.Foundation.Collections

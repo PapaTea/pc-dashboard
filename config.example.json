@@ -1,0 +1,17 @@
+{
+  "_comment": "Copy to config.json and edit. Every key is optional.",
+  "port": 8765,
+  "adb": "",
+  "serial": "",
+  "usb_bridge": true,
+  "browser": "com.yandex.browser/.YandexBrowserActivity",
+  "browser_pkg": "com.yandex.browser",
+  "rotation": 1,
+  "fullscreen_tap": [
+    800,
+    400
+  ],
+  "screen_timeout_ms": 1800000,
+  "disk_path": "C:\\",
+  "hermes_db": ""
+}
